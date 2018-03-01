@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://hikapok.github.io/"/>
-  <updated>2018-01-19T11:00:06.214Z</updated>
+  <updated>2018-03-01T02:51:59.141Z</updated>
   <id>https://hikapok.github.io/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>线性回归和逻辑回归模型的基本假设</title>
+    <link href="https://hikapok.github.io/2018/02/28/assumption-of-basic-ml/"/>
+    <id>https://hikapok.github.io/2018/02/28/assumption-of-basic-ml/</id>
+    <published>2018-02-28T12:41:59.000Z</published>
+    <updated>2018-03-01T02:51:59.141Z</updated>
+    
+    <content type="html"><![CDATA[<p>对机器学习刚入门的同学很容易对一些基本概念混淆不清，尤其是当下Python中一些的工具包进一步降低了ML相关的实践。本文重点探讨一下统计学习理论中一些基础模型的应用假设。不过，首先我觉得有必要澄清一些基本概念。</p><h1 id="线性模型"><a href="#线性模型" class="headerlink" title="线性模型"></a><strong>线性模型</strong></h1><p>何为线性模型？看似简单的问题却不一定能答得很好，初学者也容易被数学中线性这一概念所“误导”。</p><ul><li><strong>线性回归模型或线性分类器</strong></li></ul><p>在本文中这二者较为类似，以线性回归模型为例。给定一组随机抽取的样本$\mathbf{X_i} = X_{ij}$及其观测值$Y_i$，其中$i=1,…,N$，$j=1,…,p$，$p$是特征维数也是下面公式中非线性基函数的个数，线性回归模型定义为$$Y_i=\beta_0 + \beta_1\phi_1(X_{i1}) + \cdot + \beta_p\phi_p(X_{ip}) + \varepsilon_i$$<br>其中$\beta_j$是回归系数，可以用来评估每个分量在预测中的重要性，$\phi_j$是非线性基函数，$\varepsilon_t$是回归残差。这里的线性指的是回归系数是$\beta_j$线性的，同时预测值也是$\beta_j$的线性组合。</p><ul><li><strong>时间序列分析中的线性模型</strong></li></ul><p>在基于时间序列的分析和预测中，线性模型指的是某时刻随机变量的预测值是之前若干时刻的随机变量取值的线性函数，通俗来讲就是线性组合。比如随机过程中的一个叫作自回归(Autoregressive, AR)的模型就是一个经典的例子。以$AR(p)$来表示$p$阶自回归模型，则$AR(p)$可定义如下$$ X_t = c + \sum_{i=1}^p\varphi _iX_{t-i} + \varepsilon_t $$<br>其中$\varphi _1,…,\varphi _p$是模型参数，$\varepsilon_t$是残差满足独立高斯分布，$c$是常数项。这里的线性一词并不是指模型参数$\varphi _i$是线性的，这和线性回归模型是不一样的。</p><h1 id="线性回归模型的基本假设"><a href="#线性回归模型的基本假设" class="headerlink" title="线性回归模型的基本假设"></a><strong>线性回归模型的基本假设</strong></h1><p>现在进入本文正题，注意这里的讨论只针对基本的模型，一些假设可以通过如采样更多的数据，贝叶斯估计或其它正则化等方法进行弱化。</p><ul><li><em>i.i.d.</em>：样本随机独立抽样，也就是机器学习问题中最基本的独立同分布假设，训练样本和测试样本必须来自同一个潜在数据生成分布</li><li><em>解释分量之间不满足多重共线性，同时样本数不能太少</em>：这两点就能保证设计矩阵$\mathbf{X}$是满秩的（样本数要大于解释分量数），这样$\mathbf{X}^T\mathbf{X}$就有唯一的逆矩阵，这在线性回归的最小平方估计方法中非常重要，保证了回归系数的唯一性。</li><li><em>Error-Free</em>：样本$\mathbf{X_i}$采样过程中没有引入其他噪声，换句话说除了$\mathbf{X_i}$没有其它未知变量可以对$Y_i$对应的真实值产生确定性的影响，违反这一假设所引入的误差称为贝叶斯误差（Bayes error）</li><li><em>回归误差的条件均值为零</em>：这一点其实和上面的是一样的，同样意味着$\mathbf{X_i}$中包含了所有可以解释$Y_i$的分量，即$E[\varepsilon|\mathbf{X}] = 0$</li><li><em>线性假设</em>：预测真实值是回归系数的线性组合</li><li><em>回归误差的方差一致性</em>：回归误差在不同真实值处应具有相同的方差，与$\mathbf{X_i}$及$Y_i$无关，即$Var(\varepsilon|\mathbf{X})=\sigma^2$</li><li><em>回归误差的独立性</em>：承接上一条，$\varepsilon_i$之间应是相互独立的，$\varepsilon \sim N(0,\sigma^2)$，即不取决于是哪一个样本，至于零均值满足第四条自然能够得出</li></ul><h1 id="逻辑回归模型的基本假设"><a href="#逻辑回归模型的基本假设" class="headerlink" title="逻辑回归模型的基本假设"></a><strong>逻辑回归模型的基本假设</strong></h1><ul><li><em>i.i.d.</em>：同上</li><li><em>解释分量之间不满足多重共线性</em>：与上类似</li><li><em>对数几率和解释变量之间存在线性关系</em>：保证了回归系数是线性的</li></ul>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;对机器学习刚入门的同学很容易对一些基本概念混淆不清，尤其是当下Python中一些的工具包进一步降低了ML相关的实践。本文重点探讨一下统计学习理论中一些基础模型的应用假设。不过，首先我觉得有必要澄清一些基本概念。&lt;/p&gt;
+&lt;h1 id=&quot;线性模型&quot;&gt;&lt;a href=&quot;#线性模
+      
+    
+    </summary>
+    
+      <category term="其它" scheme="https://hikapok.github.io/categories/others/"/>
+    
+    
+      <category term="机器学习" scheme="https://hikapok.github.io/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/"/>
+    
+      <category term="统计学习" scheme="https://hikapok.github.io/tags/%E7%BB%9F%E8%AE%A1%E5%AD%A6%E4%B9%A0/"/>
+    
+  </entry>
   
   <entry>
     <title>手把手教你用Google云平台搭建自己的深度学习工作站</title>

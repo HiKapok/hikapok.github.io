@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+<!-- hexo-inject:begin --><!-- hexo-inject:end --><!-- Google Analytics -->
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-108013148-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<!-- End Google Analytics -->
+
+
+    
+<!-- Tencent Speed -->
+<script>var _speedMark = new Date()</script>
+<!-- End Tencent Speed -->
+<!-- Tencent Analysis -->
+<script async src="//tajs.qq.com/stats?sId=63842673"></script>
+<!-- End Tencent Analysis -->
+
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    <title>使用Tensorflow C++ API自定义操作 | Post Modern Paradigm | Kapok的技术博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="机器学习,深度学习,C++">
+    <meta name="description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+<meta name="keywords" content="机器学习,深度学习,C++">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Tensorflow C++ API自定义操作">
+<meta property="og:url" content="https://hikapok.github.io/2018/03/01/write-cpp-op/index.html">
+<meta property="og:site_name" content="Post Modern Paradigm">
+<meta property="og:description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-03-01T03:04:03.336Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用Tensorflow C++ API自定义操作">
+<meta name="twitter:description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+    
+        <link rel="alternate" type="application/atom+xml" title="Post Modern Paradigm" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/img/logo.png">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head --><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+    
+
+</head>
+
+<body>
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/head_logo.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">Kapok</h5>
+          <a href="mailto:wangchangan@yeah.net" title="wangchangan@yeah.net" class="mail">wangchangan@yeah.net</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                Archives
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                Tags
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                Categories
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/HiKapok" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://www.zhihu.com/people/mangost/activities" target="_blank" >
+                <i class="icon icon-lg icon-link"></i>
+                Zhihu
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://twitter.com/HiKapok" target="_blank" >
+                <i class="icon icon-lg icon-twitter"></i>
+                Twitter
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about" target="_blank" >
+                <i class="icon icon-lg icon-user"></i>
+                About
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用Tensorflow C++ API自定义操作</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用Tensorflow C++ API自定义操作</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2018-03-01T02:57:28.000Z" itemprop="datePublished" class="page-time">
+  2018-03-01
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/deeplearning/">深度学习</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+<article id="post-write-cpp-op"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用Tensorflow C++ API自定义操作</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2018-03-01 10:57:28" datetime="2018-03-01T02:57:28.000Z"  itemprop="datePublished">2018-03-01</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/deeplearning/">深度学习</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。</p>
+<p>今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可用的api是有限的。</p>
+<p>讲真的其实用C++写一个tensorflow的新操作还是很简单的，甚至只要会C然后利用一个好的框架就大致可以搞定，总的来说可以参考的资料主要有：tensorflow offical  add new op 以及tensorflow源码中官方的op是怎么添加的，其实都是一种套路，多学习官方代码里的op事半功倍，具体来说我推荐Bias_Op来开始学习，因为这个op写的还是很清晰然后对初学者不会有太多的阻碍，当然也可以参考我最近写的PSROIAlign。这里还必须要推荐一个利器SourceInsight简直是阅读这种开源代码的法宝。<br>总结官方给的自定义op的标准流程：注册op，实现op，创建python接口，实现op梯度计算（如果不需要求导也可以直接pass掉，实现可以在python端也可以用py_func去包装其他python函数，也可以再写一个C++ op来专门计算梯度），测试。</p>
+<p>注册op</p>
+<p>注册op相当于是一个声明的过程。op是tensorflow中非常重要的概念，一个op接收一个或多个输入张量，然后经过某种运算，产生其他零个或多个tensor，然后这些tensor又可以被其他op使用。类似于C++中我们定义变量需要知道数据类型，字节数等信息一样，创建一个op同样需要一些额外信息包括attributes（输入输出类型以及合法取值等，也可以看作是op的输入但是不同于输入的是属性永远是常量）以及输入输出列表，还可以直接加Doc，具体信息是我们在REGISTER_OP时指定的，REGISTER_OP是一个宏，其内部实现是一个wrapper利用了C++中的常用伎俩chaining调用实现。具体注册的过程可以参看我之前写的一个简单的介绍 – 知乎用户：tensorflow中的op注册的原理是什么？</p>
+<p>注册这个地方还有一个SetShapeFn需要说一下，主要作用是检查输入的shape并指定输出的shape，当然你也可以在op的compute里面检查之类，但是这个ShapeFn有一个点是可以让tesorflow不用执行操作就能获取输入输出信息。一开始我对如何指定输出大小的api也有一些困惑，因为还涉及动态shape，这里推荐仔细阅读InferenceContext这个类，还是推荐用SourceInsight用好搜索和bookmark即可。</p>
+<p>实现op</p>
+<p>动手之前了解一下C++中的functor、模板及其特化还是很有必要的，对lambda也有了解的话就更好了，如果你对C++不熟的话建议尽量避免使用Eigen，直接把数组取出来用C计算就行，因为tensorflow里面的张量都是按行主序存的（多维的情况就是最外面的那一维变化最快）。</p>
+<p>用C++实现op有一个固定的套路，遵循这个套路可以避免走弯路，当然这都不是必须的，只要你定义了计算函数并且在kernel的Compute里面调用你的计算即可。初学者可以参考下面这个框架来做：</p>
+<p>每个Op继承自OpKernel，然后最后在注册kernel的时候可以对不同的设备类型进行特化（如果你CPU和GPU实现相差很多，那么最好是定义一个对多数设备通用的类模板，然后对特殊设备特化这个模板）。OpKernel::Compute()是每个op计算的入口，每个op都要进行重写，通常取出所有的输入做一些常规检查，然后分配输出和临时tensor，最后转去调用实际的计算函数。同样很多重要的api都在OpKernelConstruction这个类里面建议详细阅读。</p>
+<p>具体实现过程不细说了，可以直接上C，可以用std::thread保证移植性，也可以利用强大的Eigen，里面有很好的并行化机制根据各种cost来分配资源，还可以利用Tensorflow提供的Shard工具类，下面的代码是一个使用示例。GPU的实现我不在行，一般也就拿CUDA_1D_KERNEL_LOOP搞一下，tensorflow里面利用了大量cub的api很是优雅。顺便说一下，使用Eigen或者Tensorflow的CPU并行化机制编写代码，通常写出的代码整体逻辑和GPU代码基本一致，我在写PsRoiAlign的时候从CPU代码移植到GPU改动的地方很少。</p>
+<p>const DeviceBase::CpuWorkerThreads&amp; worker_threads = <em>(context-&gt;device()-&gt;tensorflow_cpu_worker_threads());<br>const int64_t shard_cost = batch_size </em> num_rois * num_channals;<br>Shard(worker_threads.num_threads, worker_threads.workers,<br>      pooled_features.size(), shard_cost, work_routine);</p>
+<p>创建python接口</p>
+<p>在这之前当然先要对自己写的op进行编译，我捣鼓了一个CMakeLists感觉很好用，可以把C++和CUDA代码分开编译然后一起链接很省事，只要正确安装了cuda和python包头文件都可以自己找到，推荐给大家CMakeLists.txt。</p>
+<p>编译成功后应该可以获得一个动态库文件 .so，python这边load一下然后包装一下就好了，把官方的示例抄过来：<br>import tensorflow as tf<br>zero_out_module = tf.load_op_library(‘./zero_out.so’)<br>zero_out = zero_out_module.zero_out</p>
+<p>实现op梯度计算</p>
+<p>一般我的做法就是python这边要么用tensorflow自带op进行组合，要么再去调用另一个计算梯度的自定义op，然后整个计算过程放在一个函数里面，用@ops.RegisterGradient修饰一下就行了，具体可参见官方文档。</p>
+<p>测试：同样官方有示例，推荐一个tf.test里面的compute_gradient和compute_gradient_error，很好用。注意这两个函数计算的并不是梯度，而是输出对输入的Jacobian，计算梯度值要用tf.gradients，tf.test中的那两个函数也是基于tf.gradients。其中compute_gradient来计算理论和数值Jacobian，compute_gradient_error计算二者之间的误差。</p>
+<p>最后总结一下我目前遇到的坑：</p>
+<p>最好不要用Eigen接口，除非你对Eigen比较熟，否则建议使用前阅读以下Lazy Evaluation and Aliasing和Common pitfalls<br>用Shard工具类写CPU端的kernel，方便移植到GPU上，但要注意线程间的同步<br>全局一致的常量输入使用op的Attr来指定，尤其是需要基于这些常量输入做进一步地运算的时候，因为如果将常量输入作为Scalar类型的Tensor输入，那么在CPU上和GPU上运行时这些输入将在不同的内存里，如果要基于这些常量做进一步地运算在GPU上要用cuda kernel，不利于代码结构的简化<br>输出记得先清零<br>使用GetCudaLaunchConfig和CUDA_1D_KERNEL_LOOP</p>
+<p>暂时想到的就这么多，最后祝大家炼丹顺利~~找到理想工作。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2018-03-01T03:04:03.336Z" itemprop="dateUpdated">2018-03-01 11:04:03</time>
+</span><br>
+
+
+        
+        原创文章，原文地址：<a href="/2018/03/01/write-cpp-op/" target="_blank" rel="external">https://hikapok.github.io/2018/03/01/write-cpp-op/</a>
+        
+    </div>
+    <footer>
+        <a href="https://hikapok.github.io">
+            <img src="/img/head_logo.jpg" alt="Kapok">
+            Kapok
+        </a>
+    </footer>
+</blockquote>
+
+        
+<div class="page-reward">
+    <a id="rewardBtn" href="javascript:;" class="page-reward-btn waves-effect waves-circle waves-light">赏</a>
+</div>
+
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/C/">C++</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/机器学习/">机器学习</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/深度学习/">深度学习</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://hikapok.github.io/2018/03/01/write-cpp-op/&title=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&pic=https://hikapok.github.io/img/head_logo.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://hikapok.github.io/2018/03/01/write-cpp-op/&title=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&source=C++、机器学习、计算机视觉" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://hikapok.github.io/2018/03/01/write-cpp-op/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&url=https://hikapok.github.io/2018/03/01/write-cpp-op/&via=https://hikapok.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://hikapok.github.io/2018/03/01/write-cpp-op/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2018/02/28/assumption-of-basic-ml/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">线性回归和逻辑回归模型的基本假设</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+<section class="comments" id="comments">
+    <div id="disqus_thread"></div>
+    <script>
+    var disqus_shortname = 'kapok';
+    lazyScripts.push('//' + disqus_shortname + '.disqus.com/embed.js')
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+
+
+
+
+
+
+
+</article>
+
+<div id="reward" class="page-modal reward-lay">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <h3 class="reward-title">
+        <i class="icon icon-quote-left"></i>
+        您的鼓励是作者最大的动力，谢谢打赏~
+        <i class="icon icon-quote-right"></i>
+    </h3>
+    <div class="reward-content">
+        
+        <div class="reward-code">
+            <img id="rewardCode" src="/img/wechat.png" alt="打赏二维码">
+        </div>
+        
+        <label class="reward-toggle">
+            <input id="rewardToggle" type="checkbox" class="reward-toggle-check"
+                data-wechat="/img/wechat.png" data-alipay="/img/alipay.png">
+            <div class="reward-toggle-ctrol">
+                <span class="reward-toggle-item wechat">微信</span>
+                <span class="reward-toggle-label"></span>
+                <span class="reward-toggle-item alipay">支付宝</span>
+            </div>
+        </label>
+        
+    </div>
+</div>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>Kapok &copy; 2018</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://hikapok.github.io/2018/03/01/write-cpp-op/&title=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&pic=https://hikapok.github.io/img/head_logo.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://hikapok.github.io/2018/03/01/write-cpp-op/&title=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&source=C++、机器学习、计算机视觉" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://hikapok.github.io/2018/03/01/write-cpp-op/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用Tensorflow C++ API自定义操作》 — Post Modern Paradigm&url=https://hikapok.github.io/2018/03/01/write-cpp-op/&via=https://hikapok.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://hikapok.github.io/2018/03/01/write-cpp-op/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAAAAACs8KCBAAACLklEQVR42u3aS27DMAxFUe9/0y7QUQsD1n2UFcTU1cgIUkXHA5YfHQde5+/6+3xd1+9fP+c7HyuWDBkyXss4b9f1x9Kj8Fdw/8n9i5MhQ8YOjJlQyEMwD+L8bDJkyJDBAy5HypAhQ8bqgEt+jKR95JXJkCFDRlrEkmPVQmda9MqQIWM3Rm0w8Jnn5fMNGTJkfD3jDBdvsfFPaif5t5sMGTJaM0jLnjfgakNQzhuEYxkyZLRm8IyLpHRpwckLY/KiZciQ0Y9BrmERGA+UtUMPxqUyZMhozVjdxVo34JQhQ8ZujJmQ99SYk1AHQV+GDBlNGWlzPy1in0oZByeRIUNGa0Yti0zZPIzyfwAoQZQhQ0YLBqlo0/FA7ZpXms/KkCFjHwa/9JB+Z74k5mmoDBkydmPUwmU6Zkj/KthHhgwZmzHSgSJvtKXXOKYCrgwZMlowVjTx+XWNtA1XTAplyJDxWkatuX+fMs5cGiOBezCJlSFDRjsGOSK/6JCOHtORZ1xay5AhowWDlJTz5SsvU9MSWoYMGfswVjzP7PBwFS5DhoyXM9KyMy1KeeLIR5uo6SZDhoxGjDNc6QWImVAb7ClDhozWjNr1LN7KT69QzCSdMmTI6M1Ig+z8YLI2DIhzRhkyZLRjzAwy+Q7HxBqMSGXIkCEDN/E5mySUQciWIUOGDEy6LzhTQPCaZMiQsQGD/0ytlnwqWRwEXBkyZDRl1AYD6UYrrpc9MN+QIUPGtzN+AGJ4+giaqAFiAAAAAElFTkSuQmCC" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: true };
+
+
+lazyScripts.push('//s95.cnzz.com/z_stat.php?id=1264694933&web_id=1264694933')
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<script async src="//cdn.bootcss.com/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+
+
+
+
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+<script>
+(function() {
+    var OriginTitile = document.title, titleTime;
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            document.title = 'Kapok的技术博客 | C++、机器学习、计算机视觉';
+            clearTimeout(titleTime);
+        } else {
+            document.title = 'Post Modern Paradigm | 欢迎回来';
+            titleTime = setTimeout(function() {
+                document.title = OriginTitile;
+            },2000);
+        }
+    });
+})();
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+
+
+</body>
+</html>

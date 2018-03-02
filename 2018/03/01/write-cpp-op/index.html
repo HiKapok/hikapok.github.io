@@ -44,7 +44,7 @@ ga('send', 'pageview');
 <meta property="og:site_name" content="Post Modern Paradigm">
 <meta property="og:description" content="Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。 总">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2018-03-02T04:05:08.747Z">
+<meta property="og:updated_time" content="2018-03-02T04:08:57.001Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="使用Tensorflow C++ API自定义操作">
 <meta name="twitter:description" content="Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。 总">
@@ -253,6 +253,7 @@ ga('send', 'pageview');
 <li>全局一致的常量输入使用op的Attr来指定，尤其是需要基于这些常量输入做进一步地运算的时候，因为如果将常量输入作为Scalar类型的Tensor输入，那么在CPU上和GPU上运行时这些输入将在不同的内存里，如果要基于这些常量做进一步地运算在GPU上要用cuda kernel，不利于代码结构的简化</li>
 <li>输出记得先清零</li>
 </ul>
+<p>此外，如果你希望静态链接你的Op，那么可以把代码放在Tensorflow源代码的<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/user_ops" target="_blank" rel="external">user_ops</a>目录下，然后在<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/user_ops/BUILD" target="_blank" rel="external">BUILD</a>文件里添加一个tf_custom_op_library就可以了。</p>
 <p>暂时想到的就这么多，最后祝大家炼丹顺利~~找到理想工作。</p>
 
         </div>
@@ -261,7 +262,7 @@ ga('send', 'pageview');
     <div class="content">
         
 <span class="post-time">
-    最后更新时间：<time datetime="2018-03-02T04:05:08.747Z" itemprop="dateUpdated">2018-03-02 12:05:08</time>
+    最后更新时间：<time datetime="2018-03-02T04:08:57.001Z" itemprop="dateUpdated">2018-03-02 12:08:57</time>
 </span><br>
 
 

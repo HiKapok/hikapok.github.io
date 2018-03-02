@@ -187,6 +187,55 @@ ga('send', 'pageview');
     <ul class="post-list">
     
         <li class="post-list-item fade">
+            <article id="post-how-new-op-works"
+  class="article-card article-type-post" itemprop="blogPost">
+
+    <div class="post-meta">
+        <time class="post-time" title="2018-03-02 10:52:15" datetime="2018-03-02T02:52:15.000Z"  itemprop="datePublished">2018-03-02</time>
+
+        
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/deeplearning/">深度学习</a></li></ul>
+
+
+
+    </div>
+
+    
+
+
+  
+    <h3 class="post-title" itemprop="name">
+      <a class="post-title-link" href="/2018/03/02/how-new-op-works/">Tensorflow是如何注册和调用C++ New Op的</a>
+    </h3>
+  
+
+
+
+
+    <div class="post-content" id="post-content" itemprop="postContent">
+
+    
+        寒假回来想起来挖的坑，但好像并没有特别好的主题可以写，更不用说实习招聘近在眼前了，于是打算先扩展一下之前在知乎上的两个回答。
+本文主要介绍动态链接的C++ New Op是如何被注册进来，又如何被Python代码调用的，也算是给自己的一个交代，毕竟本人一直不太喜欢high-level的API。本文大致分为三个模块：注册Ops，注册Kernel，调用Ops。
+Ops的注册过程先说一下OpRegi...
+    
+
+        <a href="/2018/03/02/how-new-op-works/" class="post-more waves-effect waves-button">
+            阅读全文…
+        </a>
+    </div>
+    
+    <div class="post-footer">
+        
+	<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/C/">C++</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/机器学习/">机器学习</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/深度学习/">深度学习</a></li></ul>
+
+    </div>
+    
+</article>
+
+        </li>
+    
+        <li class="post-list-item fade">
             <article id="post-write-cpp-op"
   class="article-card article-type-post" itemprop="blogPost">
 
@@ -215,8 +264,7 @@ ga('send', 'pageview');
     <div class="post-content" id="post-content" itemprop="postContent">
 
     
-        碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。
-今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点...
+        Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择...
     
 
         <a href="/2018/03/01/write-cpp-op/" class="post-more waves-effect waves-button">

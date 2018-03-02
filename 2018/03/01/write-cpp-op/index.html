@@ -36,18 +36,18 @@ ga('send', 'pageview');
     
     
     <meta name="keywords" content="机器学习,深度学习,C++">
-    <meta name="description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+    <meta name="description" content="Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。 总">
 <meta name="keywords" content="机器学习,深度学习,C++">
 <meta property="og:type" content="article">
 <meta property="og:title" content="使用Tensorflow C++ API自定义操作">
 <meta property="og:url" content="https://hikapok.github.io/2018/03/01/write-cpp-op/index.html">
 <meta property="og:site_name" content="Post Modern Paradigm">
-<meta property="og:description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+<meta property="og:description" content="Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。 总">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2018-03-01T03:04:03.336Z">
+<meta property="og:updated_time" content="2018-03-02T04:05:08.747Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="使用Tensorflow C++ API自定义操作">
-<meta name="twitter:description" content="碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。 今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可">
+<meta name="twitter:description" content="Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用py_func来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。 总">
     
         <link rel="alternate" type="application/atom+xml" title="Post Modern Paradigm" href="/atom.xml">
     
@@ -193,6 +193,13 @@ ga('send', 'pageview');
 
 <div class="container body-wrap">
     
+    <aside class="post-widget">
+        <nav class="post-toc-wrap" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#注册Op"><span class="post-toc-number">1.</span> <span class="post-toc-text">注册Op</span></a></li><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#实现Op"><span class="post-toc-number">2.</span> <span class="post-toc-text">实现Op</span></a></li><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#创建python接口"><span class="post-toc-number">3.</span> <span class="post-toc-text">创建python接口</span></a></li><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#实现Op梯度计算"><span class="post-toc-number">4.</span> <span class="post-toc-text">实现Op梯度计算</span></a></li><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#测试Op"><span class="post-toc-number">5.</span> <span class="post-toc-text">测试Op</span></a></li><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#总结"><span class="post-toc-number">6.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+    
 <article id="post-write-cpp-op"
   class="post-article article-type-post fade" itemprop="blogPost">
 
@@ -214,26 +221,38 @@ ga('send', 'pageview');
 
         </div>
         <div class="post-content" id="post-content" itemprop="postContent">
-            <p>碰巧看到这个问题，前段时间做比赛顺便学习了一下用C++自定义tensorflow的op，比赛虽然做的不怎么样，但是学了不少额外的东西。。。</p>
-<p>今天顺便总结一下，希望对初次接触的同学有所帮助。这里仅涉及动态链接的op添加，因为当时我使用的bazel有问题我也懒得降版本，导致无法从源码进行编译。动态添加是最简单的方式，只要安装了tensorflow的python包就可以编译然后链接使用，有一个缺点就是可用的api是有限的。</p>
-<p>讲真的其实用C++写一个tensorflow的新操作还是很简单的，甚至只要会C然后利用一个好的框架就大致可以搞定，总的来说可以参考的资料主要有：tensorflow offical  add new op 以及tensorflow源码中官方的op是怎么添加的，其实都是一种套路，多学习官方代码里的op事半功倍，具体来说我推荐Bias_Op来开始学习，因为这个op写的还是很清晰然后对初学者不会有太多的阻碍，当然也可以参考我最近写的PSROIAlign。这里还必须要推荐一个利器SourceInsight简直是阅读这种开源代码的法宝。<br>总结官方给的自定义op的标准流程：注册op，实现op，创建python接口，实现op梯度计算（如果不需要求导也可以直接pass掉，实现可以在python端也可以用py_func去包装其他python函数，也可以再写一个C++ op来专门计算梯度），测试。</p>
-<p>注册op</p>
-<p>注册op相当于是一个声明的过程。op是tensorflow中非常重要的概念，一个op接收一个或多个输入张量，然后经过某种运算，产生其他零个或多个tensor，然后这些tensor又可以被其他op使用。类似于C++中我们定义变量需要知道数据类型，字节数等信息一样，创建一个op同样需要一些额外信息包括attributes（输入输出类型以及合法取值等，也可以看作是op的输入但是不同于输入的是属性永远是常量）以及输入输出列表，还可以直接加Doc，具体信息是我们在REGISTER_OP时指定的，REGISTER_OP是一个宏，其内部实现是一个wrapper利用了C++中的常用伎俩chaining调用实现。具体注册的过程可以参看我之前写的一个简单的介绍 – 知乎用户：tensorflow中的op注册的原理是什么？</p>
-<p>注册这个地方还有一个SetShapeFn需要说一下，主要作用是检查输入的shape并指定输出的shape，当然你也可以在op的compute里面检查之类，但是这个ShapeFn有一个点是可以让tesorflow不用执行操作就能获取输入输出信息。一开始我对如何指定输出大小的api也有一些困惑，因为还涉及动态shape，这里推荐仔细阅读InferenceContext这个类，还是推荐用SourceInsight用好搜索和bookmark即可。</p>
-<p>实现op</p>
-<p>动手之前了解一下C++中的functor、模板及其特化还是很有必要的，对lambda也有了解的话就更好了，如果你对C++不熟的话建议尽量避免使用Eigen，直接把数组取出来用C计算就行，因为tensorflow里面的张量都是按行主序存的（多维的情况就是最外面的那一维变化最快）。</p>
-<p>用C++实现op有一个固定的套路，遵循这个套路可以避免走弯路，当然这都不是必须的，只要你定义了计算函数并且在kernel的Compute里面调用你的计算即可。初学者可以参考下面这个框架来做：</p>
-<p>每个Op继承自OpKernel，然后最后在注册kernel的时候可以对不同的设备类型进行特化（如果你CPU和GPU实现相差很多，那么最好是定义一个对多数设备通用的类模板，然后对特殊设备特化这个模板）。OpKernel::Compute()是每个op计算的入口，每个op都要进行重写，通常取出所有的输入做一些常规检查，然后分配输出和临时tensor，最后转去调用实际的计算函数。同样很多重要的api都在OpKernelConstruction这个类里面建议详细阅读。</p>
-<p>具体实现过程不细说了，可以直接上C，可以用std::thread保证移植性，也可以利用强大的Eigen，里面有很好的并行化机制根据各种cost来分配资源，还可以利用Tensorflow提供的Shard工具类，下面的代码是一个使用示例。GPU的实现我不在行，一般也就拿CUDA_1D_KERNEL_LOOP搞一下，tensorflow里面利用了大量cub的api很是优雅。顺便说一下，使用Eigen或者Tensorflow的CPU并行化机制编写代码，通常写出的代码整体逻辑和GPU代码基本一致，我在写PsRoiAlign的时候从CPU代码移植到GPU改动的地方很少。</p>
-<p>const DeviceBase::CpuWorkerThreads&amp; worker_threads = <em>(context-&gt;device()-&gt;tensorflow_cpu_worker_threads());<br>const int64_t shard_cost = batch_size </em> num_rois * num_channals;<br>Shard(worker_threads.num_threads, worker_threads.workers,<br>      pooled_features.size(), shard_cost, work_routine);</p>
-<p>创建python接口</p>
-<p>在这之前当然先要对自己写的op进行编译，我捣鼓了一个CMakeLists感觉很好用，可以把C++和CUDA代码分开编译然后一起链接很省事，只要正确安装了cuda和python包头文件都可以自己找到，推荐给大家CMakeLists.txt。</p>
-<p>编译成功后应该可以获得一个动态库文件 .so，python这边load一下然后包装一下就好了，把官方的示例抄过来：<br>import tensorflow as tf<br>zero_out_module = tf.load_op_library(‘./zero_out.so’)<br>zero_out = zero_out_module.zero_out</p>
-<p>实现op梯度计算</p>
-<p>一般我的做法就是python这边要么用tensorflow自带op进行组合，要么再去调用另一个计算梯度的自定义op，然后整个计算过程放在一个函数里面，用@ops.RegisterGradient修饰一下就行了，具体可参见官方文档。</p>
-<p>测试：同样官方有示例，推荐一个tf.test里面的compute_gradient和compute_gradient_error，很好用。注意这两个函数计算的并不是梯度，而是输出对输入的Jacobian，计算梯度值要用tf.gradients，tf.test中的那两个函数也是基于tf.gradients。其中compute_gradient来计算理论和数值Jacobian，compute_gradient_error计算二者之间的误差。</p>
-<p>最后总结一下我目前遇到的坑：</p>
-<p>最好不要用Eigen接口，除非你对Eigen比较熟，否则建议使用前阅读以下Lazy Evaluation and Aliasing和Common pitfalls<br>用Shard工具类写CPU端的kernel，方便移植到GPU上，但要注意线程间的同步<br>全局一致的常量输入使用op的Attr来指定，尤其是需要基于这些常量输入做进一步地运算的时候，因为如果将常量输入作为Scalar类型的Tensor输入，那么在CPU上和GPU上运行时这些输入将在不同的内存里，如果要基于这些常量做进一步地运算在GPU上要用cuda kernel，不利于代码结构的简化<br>输出记得先清零<br>使用GetCudaLaunchConfig和CUDA_1D_KERNEL_LOOP</p>
+            <p>Tensorflow提供了大量的基本操作使得我们能够任意组合来实现我们需要的复杂操作，但有时候我们需要的操作不太容易通过这些基本操作来组合，或者复杂的组合方式带来严重的性能开销，这时我们可能会考虑去使用<a href="https://www.tensorflow.org/api_docs/python/tf/py_func" target="_blank" rel="external">py_func</a>来包装Python函数借助Numpy来实现，但性能方面可能也无法达到满意的程度，更不要说有些操作不适合向量化的写法，这个时候用C++ API来实现自己的一个操作可能会是更好的选择。</p>
+<p>总得来说，我们可以通过静态链接或动态连接的方式来添加我们自定义的操作，前者需要你能成功从源码编译安装Tensorflow（<a href="https://www.tensorflow.org/install/install_sources" target="_blank" rel="external">Installing TensorFlow from Sources</a>），后者只需要安装Tensorflow的Python包即可，不过后者有一个缺点就是可用的C++ API是有限的，如果你需要一些别的接口可能要自己去找相关的头文件然后手动添加进来，如果头文件数目很多这就是一件很头疼的事情了，但优点也是很明显，一是简单，二是不用强制要求使用你操作的人也要从源码编译安装Tensorflow。下面主要以动态链接的添加为例进行叙述，对静态链接添加的方式也会有涉及，二者基本上是一样的。另外，本文主要注重实践部分，如果你需要一些更详细的标准化说明，可以去参考官方的Tutorial：<a href="https://www.tensorflow.org/extend/adding_an_op" target="_blank" rel="external">Adding a New Op</a>，一些比如Ops注册的属性说明以及如何保持Ops属性的后向兼容性等会更加详细。</p>
+<p>另外如果你对Tensorflow注册Ops和Kernel的过程或者它们是如何被Python代码调用的感兴趣，可以阅读我之前写的一篇文章<a href="https://hikapok.github.io/2018/03/02/how-new-op-works/">Tensorflow是如何注册和调用C++ New Op的</a>。如果你想学习一下官方Ops是怎么写的，我推荐从<a href="https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/core/kernels/bias_op.cc" target="_blank" rel="external">Bias_Op</a>来开始学习，因为这个Op写的还是很清晰然后对初学者不会有太多的阻碍，当然也可以参考我最近写的<a href="https://github.com/HiKapok/PSROIAlign" target="_blank" rel="external">PSROIAlign</a>。这里还必须要推荐一个利器SourceInsight简直是阅读这种开源代码的法宝。</p>
+<p>先总结官方给的自定义op的标准流程：注册Op，实现Op，创建python接口，实现Op梯度计算（如果不需要求导也可以直接pass掉，实现可以在python端也可以用py_func去包装其他python函数，也可以再写一个C++ Op来专门计算梯度），测试。</p>
+<h1 id="注册Op"><a href="#注册Op" class="headerlink" title="注册Op"></a><strong>注册Op</strong></h1><p>注册Op相当于是一个声明的过程。Op是tensorflow中非常重要的概念，一个Op接收一个或多个输入张量，然后经过某种运算，产生其他零个或多个tensor，然后这些tensor又可以被其他Op使用。类似于C++中我们定义变量需要知道数据类型，字节数等信息一样，创建一个Op同样需要一些额外信息包括attributes（输入输出类型以及合法取值等，也可以看作是Op的输入但是不同于输入的是属性永远是常量，其值在Op被添加到图中时被设置，并且是一直放在CPU上的）以及输入输出列表，还可以直接加Doc，具体信息是我们在REGISTER_OP时指定的，REGISTER_OP是一个宏，其内部实现是一个wrapper利用了C++中的常用伎俩chaining调用实现，所有你在这添加的信息都会以另一种形式出现在动态生成的Python代码中。有一点需要注意，在C++这边Ops的名称必须是CamelCase类型的，在Python那一边会自动被转换成Python风格的snake_case类型。</p>
+<p>注册这个地方还有一个SetShapeFn需要说一下，主要作用是检查输入的shape并指定输出的shape，当然你也可以在Op的compute里面检查之类，但是这个ShapeFn有一个点是可以让tesorflow不用执行操作就能获取输入输出信息。在ShapeFn里面你可以拿到输入输出的每一个维度的大小（DimensionHandle），或者属性常量的值或者输入常量的值，然后组合成输出的ShapeHandle，最后调用set_output指定对应输出的shape，同时DimensionHandle是可以做四则运算的。一开始我对如何指定输出大小的api也有一些困惑，因为还涉及动态shape，这里推荐仔细阅读<a href="https://github.com/tensorflow/tensorflow/blob/aa729b1aac8a2a4939fd3b208510caea645ddd87/tensorflow/core/framework/shape_inference.h#L158" target="_blank" rel="external">InferenceContext</a>这个类，还是推荐用SourceInsight用好搜索和bookmark即可。</p>
+<h1 id="实现Op"><a href="#实现Op" class="headerlink" title="实现Op"></a><strong>实现Op</strong></h1><p>动手之前了解一下C++中的functor、模板及其特化还是很有必要的，对lambda也有了解的话就更好了，如果你对C++不熟的话建议尽量避免使用Eigen，直接把数组取出来用C计算就行，因为tensorflow里面的张量都是按行主序存的（多维的情况就是最外面的那一维变化最快）。</p>
+<p>用C++实现Op有一个固定的套路，遵循这个套路可以避免走弯路，当然这都不是必须的，只要你定义了计算函数并且在kernel的Compute里面调用你的计算即可。初学者可以参考下面这个框架来做：</p>
+<ul>
+<li>定义一个Functor模板类做实际的计算工作</li>
+<li>针对不同设备甚至不同数据类型特化Functor模板类</li>
+<li>定义一个Kernel模板类，继承自OpKernel，在构造函数中根据传进来的OpKernelConstruction设置必要的成员</li>
+<li>视情况针对别的设备特化Kernel模板类，一般无需特化，因为这个类里面一般会做一些通用工作，然后将实际的计算转到Functor模板类中</li>
+<li>重写Kernel的Compute方法，利用OpKernelContext获取输出，分配输出，并进行合法性检查，然后转调对应的计算Functor</li>
+<li>注册Kernel</li>
+</ul>
+<p>很多重要的api都在<a href="https://github.com/tensorflow/tensorflow/blob/aa729b1aac8a2a4939fd3b208510caea645ddd87/tensorflow/core/framework/op_kernel.h#L224" target="_blank" rel="external">OpKernelConstruction</a>和<a href="https://github.com/tensorflow/tensorflow/blob/aa729b1aac8a2a4939fd3b208510caea645ddd87/tensorflow/core/framework/op_kernel.h#L459" target="_blank" rel="external">OpKernelContext</a>两个类里面建议详细阅读。同时Compute方法必须是线程安全的，因此任何对类成员的访问必须要用互斥保护。</p>
+<p>在转到实际的计算函数前通常会把输入输出Tensor的缓冲区取出来，要么变成Eigen的表示即<a href="https://eigen.tuxfamily.org/dox/unsupported/TensorMap_8h_source.html" target="_blank" rel="external">TensorMap</a>（其对应的很多成员要去<a href="https://eigen.tuxfamily.org/dox/unsupported/TensorBase_8h_source.html" target="_blank" rel="external">TensorBase</a>里面去找），要么更进一步直接再调用TensorMap的data方法把缓冲区指针取出来传给计算函数。具体地，可以去看<a href="https://github.com/tensorflow/tensorflow/blob/aa729b1aac8a2a4939fd3b208510caea645ddd87/tensorflow/core/framework/tensor.h#L51" target="_blank" rel="external">Tensor</a>这个类提供的一些接口。</p>
+<p>计算的实现过程不细说，可以直接上C，可以用std::thread保证移植性，也可以利用强大的Eigen，里面有很好的并行化机制根据每个执行单元的cost来分配线程资源，还可以利用Tensorflow提供的对Eigen进行包装后的<a href="https://github.com/tensorflow/tensorflow/blob/aa729b1aac8a2a4939fd3b208510caea645ddd87/tensorflow/core/util/work_sharder.h#L48" target="_blank" rel="external">Shard</a>（这个头文件需要自己加）工具类，下面的代码是一个使用示例：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">auto</span> work_routine = [&amp;your_capture](<span class="keyword">int64_t</span> start, <span class="keyword">int64_t</span> limit)&#123;</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">int64_t</span> worker_index = start; worker_index &lt; limit; ++worker_index)&#123;</div><div class="line">  <span class="comment">// do something</span></div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">const</span> DeviceBase::CpuWorkerThreads&amp; worker_threads = *(context-&gt;device()-&gt;tensorflow_cpu_worker_threads());</div><div class="line"><span class="keyword">const</span> <span class="keyword">int64_t</span> shard_cost = <span class="number">4</span> * num_rois;</div><div class="line">Shard(worker_threads.num_threads, worker_threads.workers, total_elems, shard_cost, work_routine);</div></pre></td></tr></table></figure></p>
+<p>GPU的实现多数简单情况下GetCudaLaunchConfig + CUDA_1D_KERNEL_LOOP就可以搞定，更多有用的接口可以去看<a href="https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/core/util/cuda_kernel_helper.h" target="_blank" rel="external">cuda_kernel_helper.h</a>，也可以借助cub的api或者更暴力一点直接写。顺便说一下，使用Eigen或者Tensorflow的CPU并行化机制编写代码，通常写出的代码整体逻辑和GPU代码基本一致，我在写<a href="https://github.com/HiKapok/PSROIAlign" target="_blank" rel="external">PSROIAlign</a>的时候从CPU代码移植到GPU改动的地方很少。</p>
+<p>OpKernel的注册和Ops的注册比较类似，也是调用一个宏REGISTER_KERNEL_BUILDER，指定名称、Kernel对应的设备类型，以及创建这个Kernel的C++类。详见<a href="https://hikapok.github.io/2018/03/02/how-new-op-works/">Tensorflow是如何注册和调用C++ New Op的</a>。</p>
+<h1 id="创建python接口"><a href="#创建python接口" class="headerlink" title="创建python接口"></a><strong>创建python接口</strong></h1><p>在这之前当然先要对自己写的Op进行编译，我捣鼓了一个CMakeLists感觉很好用，可以把C++和CUDA代码分开编译然后一起链接很省事，只要正确安装了cuda和python包头文件都可以自己找到，推荐给大家<a href="https://github.com/HiKapok/PSROIAlign/blob/master/CMakeLists.txt" target="_blank" rel="external">CMakeLists.txt</a>。</p>
+<p>编译成功后应该可以获得一个动态库文件 .so，python这边load一下然后包装一下就好了，把官方的示例抄过来：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</div><div class="line">zero_out_module = tf.load_op_library(<span class="string">'./zero_out.so'</span>)</div><div class="line">zero_out = zero_out_module.zero_out</div></pre></td></tr></table></figure></p>
+<h1 id="实现Op梯度计算"><a href="#实现Op梯度计算" class="headerlink" title="实现Op梯度计算"></a><strong>实现Op梯度计算</strong></h1><p>一般就是python这边要么用tensorflow自带Op进行组合，要么再去调用另一个计算梯度的自定义Op，然后整个计算过程放在一个函数里面，用@ops.RegisterGradient修饰一下就行了，具体可参见官方文档。</p>
+<h1 id="测试Op"><a href="#测试Op" class="headerlink" title="测试Op"></a><strong>测试Op</strong></h1><p>同样官方有示例，推荐一个tf.test里面的<a href="https://www.tensorflow.org/api_docs/python/tf/test/compute_gradient" target="_blank" rel="external">compute_gradient</a>和<a href="https://www.tensorflow.org/api_docs/python/tf/test/compute_gradient_error" target="_blank" rel="external">compute_gradient_error</a>，很好用。注意这两个函数计算的并不是梯度，而是输出对输入的Jacobian，计算梯度值要用tf.gradients，tf.test中的那两个函数也是基于<a href="https://www.tensorflow.org/api_docs/python/tf/gradients" target="_blank" rel="external">tf.gradients</a>。其中compute_gradient来计算理论和数值Jacobian，compute_gradient_error计算二者之间的误差。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h1><p>最后总结一下我目前遇到的坑：</p>
+<ul>
+<li>最好不要用Eigen接口，除非你对Eigen比较熟，否则建议使用前阅读以下Lazy Evaluation and Aliasing和Common pitfalls</li>
+<li>用Shard工具类写CPU端的kernel，方便移植到GPU上，但要注意线程间的同步</li>
+<li>全局一致的常量输入使用op的Attr来指定，尤其是需要基于这些常量输入做进一步地运算的时候，因为如果将常量输入作为Scalar类型的Tensor输入，那么在CPU上和GPU上运行时这些输入将在不同的内存里，如果要基于这些常量做进一步地运算在GPU上要用cuda kernel，不利于代码结构的简化</li>
+<li>输出记得先清零</li>
+</ul>
 <p>暂时想到的就这么多，最后祝大家炼丹顺利~~找到理想工作。</p>
 
         </div>
@@ -242,7 +261,7 @@ ga('send', 'pageview');
     <div class="content">
         
 <span class="post-time">
-    最后更新时间：<time datetime="2018-03-01T03:04:03.336Z" itemprop="dateUpdated">2018-03-01 11:04:03</time>
+    最后更新时间：<time datetime="2018-03-02T04:05:08.747Z" itemprop="dateUpdated">2018-03-02 12:05:08</time>
 </span><br>
 
 
@@ -322,7 +341,14 @@ ga('send', 'pageview');
     </div>
 
     
-<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2018/03/02/how-new-op-works/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Tensorflow是如何注册和调用C++ New Op的</h4>
+      </a>
+    </div>
   
 
   
